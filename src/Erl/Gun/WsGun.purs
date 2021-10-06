@@ -8,6 +8,7 @@ module Erl.Gun.WsGun
 
 import Prelude
 import Data.Either (Either(..), either)
+import Data.Time.Duration (Milliseconds(..))
 import Effect (Effect)
 import Effect.Class (liftEffect)
 import Erl.Atom.Symbol as AtomSymbol
@@ -64,7 +65,7 @@ wsOpen cb host port path = do
         , ws_opts:
             Gun.wsOptions
               { compress: true
-              , keepalive: Timeout 5000
+              , keepalive: Timeout $ Milliseconds 5000.0
               , silence_pings: false
               }
         }

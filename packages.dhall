@@ -23,5 +23,5 @@ in  upstream
     , "prelude"
     , "effect"
     ]
-  , version = "7aac95d9bebed824e6ad7a039dc0cb344186b3bd"
+  , version = "fc793e11ed2b0a0b3c38441de9dacb8652b1bbeb"
   }
