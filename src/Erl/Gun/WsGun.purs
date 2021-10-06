@@ -19,7 +19,7 @@ import Erl.Gun as Gun
 import Erl.Kernel.Inet (HostAddress, Port)
 import Erl.Process (ExitReason, receiveWithTrap, spawnLink, trapExit)
 import Erl.Types (Timeout(..))
-import Erl.Untagged.Union (case_, on)
+import Erl.Untagged.Union (type (|$|), type (|+|), Nil, Union, case_, on)
 import Foreign (Foreign, MultipleErrors, unsafeToForeign)
 import Simple.JSON (class ReadForeign, readJSON)
 
@@ -84,62 +84,69 @@ wsOpen cb host port path = do
       Left exitReason ->
         liftEffect $ cb $ Message webSocket $ WebSocketDown $ ProcessExit exitReason
 
-      Right gunMsg ->
-        case gunMsg of
-          Gun_up connPid _protocol -> do
-            _streamRef <- liftEffect $ Gun.wsUpgrade connPid path List.nil
-            receiveLoop webSocket
+      Right
+        (gunMsg' :: Union |$| GunMessage |+| Nil) ->
+        ( case_
+            # on
+                ( \gunMsg ->
+                    case gunMsg of
+                      Gun_up connPid _protocol -> do
+                        _streamRef <- liftEffect $ Gun.wsUpgrade connPid path List.nil
+                        receiveLoop webSocket
 
-          Gun_upgrade _connPid _streamRef _protocols headers -> do
-            liftEffect $ cb $ Message webSocket $ WebSocketUp headers
-            receiveLoop webSocket
+                      Gun_upgrade _connPid _streamRef _protocols headers -> do
+                        liftEffect $ cb $ Message webSocket $ WebSocketUp headers
+                        receiveLoop webSocket
 
-          Gun_ws _connPid _streamRef frame -> do
-            ( case_
-                # on
-                    ( \(_close :: CloseFrame) -> do
-                        pure unit
-                    )
-                # on
-                    ( \(_pingPong :: PingPongFrame) -> do
-                        pure unit
-                    )
-                # on
-                    ( \(dataFrame :: DataFrame) ->
-                        case dataFrame of
-                          (Text str) -> do
-                            liftEffect $ cb $ Message webSocket $ either InvalidFrame Frame $ readJSON str
-                            pure unit
-                          (Binary _bin) -> do
-                            pure unit
-                          (Close _bin) -> do
-                            pure unit
-                    )
-                # on
-                    ( \(_pong :: AtomSymbol.Atom "pong") -> do
-                        pure unit
-                    )
-                # on
-                    ( \(_ping :: AtomSymbol.Atom "ping") -> do
-                        pure unit
-                    )
-                # on
-                    ( \(_close :: AtomSymbol.Atom "close") -> do
-                        pure unit
-                    )
-            )
-              frame
-            receiveLoop webSocket
+                      Gun_ws _connPid _streamRef frame -> do
+                        ( case_
+                            # on
+                                ( \(_close :: CloseFrame) -> do
+                                    pure unit
+                                )
+                            # on
+                                ( \(_pingPong :: PingPongFrame) -> do
+                                    pure unit
+                                )
+                            # on
+                                ( \(dataFrame :: DataFrame) ->
+                                    case dataFrame of
+                                      (Text str) -> do
+                                        liftEffect $ cb $ Message webSocket $ either InvalidFrame Frame $ readJSON str
+                                        pure unit
+                                      (Binary _bin) -> do
+                                        pure unit
+                                      (Close _bin) -> do
+                                        pure unit
+                                )
+                            # on
+                                ( \(_pong :: AtomSymbol.Atom "pong") -> do
+                                    pure unit
+                                )
+                            # on
+                                ( \(_ping :: AtomSymbol.Atom "ping") -> do
+                                    pure unit
+                                )
+                            # on
+                                ( \(_close :: AtomSymbol.Atom "close") -> do
+                                    pure unit
+                                )
+                        )
+                          frame
+                        receiveLoop webSocket
 
-          Gun_down _connPid _protocol reason _streamRefs -> do
-            liftEffect $ cb $ Message webSocket $ WebSocketDown $ GunDown reason
-            receiveLoop webSocket
+                      Gun_down _connPid _protocol reason _streamRefs -> do
+                        liftEffect $ cb $ Message webSocket $ WebSocketDown $ GunDown reason
+                        receiveLoop webSocket
 
-          Gun_error _connPid _streamRef reason -> do
-            liftEffect $ cb $ Message webSocket $ WebSocketDown $ StreamError reason
+                      Gun_error _connPid _streamRef reason -> do
+                        liftEffect $ cb $ Message webSocket $ WebSocketDown $ StreamError reason
 
-          Gun_error2 _connPid reason -> do
-            liftEffect $ cb $ Message webSocket $ WebSocketDown $ ConnectionError reason
+                      Gun_error2 _connPid reason -> do
+                        liftEffect $ cb $ Message webSocket $ WebSocketDown $ ConnectionError reason
 
-          other -> do
-            liftEffect $ cb $ Message webSocket $ WebSocketDown $ UnhandledMessage $ unsafeToForeign other
+                      other -> do
+                        liftEffect $ cb $ Message webSocket $ WebSocketDown $ UnhandledMessage $ unsafeToForeign other
+                )
+        )
+          gunMsg'
