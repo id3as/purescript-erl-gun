@@ -17,7 +17,7 @@ import Erl.Data.List as List
 import Erl.Gun (CloseFrame, DataFrame(..), GunMessage(..), PingPongFrame, Protocol(..))
 import Erl.Gun as Gun
 import Erl.Kernel.Inet (HostAddress, Port)
-import Erl.Process (ExitReason, receiveWithTrap, spawnLink, trapExit)
+import Erl.Process (ExitReason, ProcessTrapM, receiveWithTrap, spawnLink, trapExit)
 import Erl.Types (Timeout(..))
 import Erl.Untagged.Union (type (|$|), type (|+|), Nil, Union, case_, on)
 import Foreign (Foreign, MultipleErrors, unsafeToForeign)
@@ -56,6 +56,7 @@ wsOpen ::
 wsOpen cb host port path = do
   void $ liftEffect $ spawnLink $ trapExit open
   where
+  open :: ProcessTrapM (Union |$| GunMessage |+| Nil) Unit
   open = do
     maybeConnPid <-
       Gun.open host port
@@ -85,7 +86,7 @@ wsOpen cb host port path = do
         liftEffect $ cb $ Message webSocket $ WebSocketDown $ ProcessExit exitReason
 
       Right
-        (gunMsg' :: Union |$| GunMessage |+| Nil) ->
+        pursGunMsg ->
         ( case_
             # on
                 ( \gunMsg ->
@@ -149,4 +150,4 @@ wsOpen cb host port path = do
                         liftEffect $ cb $ Message webSocket $ WebSocketDown $ UnhandledMessage $ unsafeToForeign other
                 )
         )
-          gunMsg'
+          pursGunMsg
