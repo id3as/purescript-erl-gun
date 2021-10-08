@@ -133,7 +133,7 @@ httpOptions ::
   forall options.
   ConvertOptionsWithDefaults OptionToMaybe (Record HttpOpts) options (Record HttpOpts) =>
   options -> Record HttpOpts
-httpOptions options = convertOptionsWithDefaults OptionToMaybe defaultHttpOpts options
+httpOptions = convertOptionsWithDefaults OptionToMaybe defaultHttpOpts
 
 type Http2Opts
   = ( losing_timeout :: Maybe Timeout
@@ -188,7 +188,7 @@ http2Options ::
   forall options.
   ConvertOptionsWithDefaults OptionToMaybe (Record Http2Opts) options (Record Http2Opts) =>
   options -> Record Http2Opts
-http2Options options = convertOptionsWithDefaults OptionToMaybe defaultHttp2Opts options
+http2Options = convertOptionsWithDefaults OptionToMaybe defaultHttp2Opts
 
 data SocksAuth
   = None
@@ -219,7 +219,7 @@ socksOptions ::
   forall options.
   ConvertOptionsWithDefaults OptionToMaybe (Record SocksOpts) options (Record SocksOpts) =>
   options -> Record SocksOpts
-socksOptions options = convertOptionsWithDefaults OptionToMaybe defaultSocksOpts options
+socksOptions = convertOptionsWithDefaults OptionToMaybe defaultSocksOpts
 
 type WsOpts
   = ( closing_timeout :: Maybe Timeout
@@ -244,13 +244,13 @@ wsOptions ::
   forall options.
   ConvertOptionsWithDefaults OptionToMaybe (Record WsOpts) options (Record WsOpts) =>
   options -> Record WsOpts
-wsOptions options = convertOptionsWithDefaults OptionToMaybe defaultWsOpts options
+wsOptions = convertOptionsWithDefaults OptionToMaybe defaultWsOpts
 
 tlsOptions ::
   forall options.
   ConvertOptionsWithDefaults OptionToMaybe (Record (Ssl.ClientOptions (Ssl.CommonOptions ()))) options (Record (Ssl.ClientOptions (Ssl.CommonOptions ()))) =>
   options -> Record (Ssl.ClientOptions (Ssl.CommonOptions ()))
-tlsOptions options = convertOptionsWithDefaults OptionToMaybe (Ssl.defaultClientOptions (Ssl.defaultCommonOptions {})) options
+tlsOptions = convertOptionsWithDefaults OptionToMaybe (Ssl.defaultClientOptions (Ssl.defaultCommonOptions {}))
 
 data Protocol
   = Http (Record HttpOpts)
@@ -461,11 +461,11 @@ open ::
   IsSupportedMessage GunMessage msg =>
   ConvertOptionsWithDefaults OptionToMaybe (Record Options) options (Record Options) =>
   HostAddress -> Port -> options -> m (Either ErrorReason (ConnPid))
-open host port options = do
+open host port opts = do
   let
     erlHost = toErl host
 
-    erlOpts = optionsToErl $ convertOptionsWithDefaults OptionToMaybe defaultOptions options
+    erlOpts = optionsToErl $ convertOptionsWithDefaults OptionToMaybe defaultOptions opts
   liftEffect $ openImpl Left Right erlHost port erlOpts
 
 foreign import openImpl :: (ErrorReason -> Either ErrorReason (ConnPid)) -> (ConnPid -> Either ErrorReason (ConnPid)) -> Foreign -> Port -> Foreign -> Effect (Either ErrorReason (ConnPid))
@@ -479,9 +479,9 @@ openUnix ::
   IsSupportedMessage GunMessage msg =>
   ConvertOptionsWithDefaults OptionToMaybe (Record Options) options (Record Options) =>
   String -> options -> m (Either ErrorReason (ConnPid))
-openUnix socketPath options = do
+openUnix socketPath opts = do
   let
-    erlOpts = optionsToErl $ convertOptionsWithDefaults OptionToMaybe defaultOptions options
+    erlOpts = optionsToErl $ convertOptionsWithDefaults OptionToMaybe defaultOptions opts
   liftEffect $ openUnixImpl Left Right socketPath erlOpts
 
 foreign import openUnixImpl :: (ErrorReason -> Either ErrorReason (ConnPid)) -> (ConnPid -> Either ErrorReason (ConnPid)) -> String -> Foreign -> Effect (Either ErrorReason (ConnPid))
