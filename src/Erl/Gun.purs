@@ -93,10 +93,10 @@ import Erl.Data.Tuple (Tuple2, tuple2, tuple3)
 import Erl.Kernel.Inet (HostAddress, Port)
 import Erl.Kernel.Inet as Inet
 import Erl.Kernel.Tcp as Tcp
-import Erl.Process (class ReceivesMessage, Process)
+import Erl.Process (Process)
 import Erl.Ssl as Ssl
 import Erl.Types (class ToErl, IntOrInfinity, NonNegInt, PosInt, Timeout, toErl)
-import Erl.Untagged.Union (class IsSupportedMessage, class RuntimeType, type (|$|), type (|+|), Nil, RTLiteralAtom, RTLiteralAtomConvert, RTOption, RTTuple2, RTTuple3, RTTuple4, RTTuple5, RTTuple6, RTTuple7, RTWildcard, Union)
+import Erl.Untagged.Union (class CanReceiveMessage, class IsSupportedMessage, class RuntimeType, type (|$|), type (|+|), Nil, RTLiteralAtom, RTLiteralAtomConvert, RTOption, RTTuple2, RTTuple3, RTTuple4, RTTuple5, RTTuple6, RTTuple7, RTWildcard, Union)
 import Foreign (Foreign, unsafeToForeign)
 import Prim.Row as Row
 import Prim.RowList as RL
@@ -457,8 +457,7 @@ instance convertOption_OptionToMaybe :: ConvertOption OptionToMaybe sym a (Maybe
 open ::
   forall options m msg.
   MonadEffect m =>
-  ReceivesMessage m msg =>
-  IsSupportedMessage GunMessage msg =>
+  CanReceiveMessage GunMessage m =>
   ConvertOptionsWithDefaults OptionToMaybe (Record Options) options (Record Options) =>
   HostAddress -> Port -> options -> m (Either ErrorReason (ConnPid))
 open host port opts = do
@@ -475,8 +474,7 @@ foreign import openImpl :: (ErrorReason -> Either ErrorReason (ConnPid)) -> (Con
 openUnix ::
   forall options m msg.
   MonadEffect m =>
-  ReceivesMessage m msg =>
-  IsSupportedMessage GunMessage msg =>
+  CanReceiveMessage GunMessage m =>
   ConvertOptionsWithDefaults OptionToMaybe (Record Options) options (Record Options) =>
   String -> options -> m (Either ErrorReason (ConnPid))
 openUnix socketPath opts = do
